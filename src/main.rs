@@ -26,7 +26,7 @@ extern crate rosrust;
 #[macro_use]
 extern crate rosrust_codegen;
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use std::sync::mpsc;
 use k::JointContainer;
 use glfw::{Action, Key, WindowEvent};
@@ -62,7 +62,7 @@ where
 
         let ik_target_pose = na::Isometry3::from_parts(
             na::Translation3::new(0.40, 0.20, 0.3),
-            na::UnitQuaternion::from_euler_angles(0.0, -0.1, 0.0),
+            na::UnitQuaternion::from_euler_angles(0.0, 1.57, 1.57),
         );
         let arm = planner.create_arm(end_link_name).unwrap();
         viewer.add_axis_cylinders("ik_target", 0.3);
@@ -99,8 +99,7 @@ where
         //let mut count = 0;
         rosrust::init("gear");
         let (tx, rx) = mpsc::channel();
-        let mut trajectory_pub = rosrust::publish("/arm_controller/follow_joint_trajectory/goal")
-            .unwrap();
+        let mut trajectory_pub = rosrust::publish("/arm_controller/command").unwrap();
         let _joint_subscriber =
             rosrust::subscribe("joint_states", move |s: msg::sensor_msgs::JointState| {
                 // Callback for handling received messages
@@ -223,11 +222,14 @@ where
                                             .into_iter()
                                             .map(|point| point.position)
                                             .collect();
-                                        let mut msg = msg::control_msgs::FollowJointTrajectoryActionGoal::default();
-                                        msg.goal_id.id = format!("gear_ros{:?}", Instant::now());
+                                        //let mut msg = msg::control_msgs::FollowJointTrajectoryActionGoal::default();
+                                        let mut msg =
+                                            msg::trajectory_msgs::JointTrajectory::default();
+                                        //msg.goal_id.id = format!("gear_ros{:?}", Instant::now());
                                         //count += 1;
-                                        msg.goal.trajectory.joint_names = self.arm
-                                            .get_joint_names();
+                                        //msg.goal.trajectory.joint_names = self.arm
+                                        //    .get_joint_names();
+                                        msg.joint_names = self.arm.get_joint_names();
                                         for (i, trajectory_point) in
                                             trajectory_points.into_iter().enumerate()
                                         {
@@ -256,22 +258,24 @@ where
                                             );
 
                                             tp.positions = trajectory_point.position;
-                                            //tp.velocities = trajectory_point.velocity;
-                                            //tp.accelerations =
-                                            //trajectory_point.acceleration.clone();
+                                            tp.velocities = trajectory_point.velocity;
+                                            tp.accelerations = trajectory_point.acceleration;
                                             //tp.effort = trajectory_point.acceleration;
 
                                             tp.time_from_start = rosrust::Duration::from_nanos(
                                                 (i * 100000000) as i64,
                                             );
-                                            msg.goal.trajectory.points.push(tp);
+                                            //msg.goal.trajectory.points.push(tp);
+                                            msg.points.push(tp);
                                         }
+                                        /*
                                         let j_tolerance =
                                             msg::control_msgs::JointTolerance::default();
                                         msg.goal.path_tolerance.push(j_tolerance);
                                         let g_tolerance =
                                             msg::control_msgs::JointTolerance::default();
                                         msg.goal.goal_tolerance.push(g_tolerance);
+                                        */
                                         // Log event
                                         //println!("Publishing: {:?}", msg);
                                         trajectory_pub.send(msg).unwrap();
