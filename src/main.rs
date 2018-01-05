@@ -26,7 +26,7 @@ extern crate rosrust;
 #[macro_use]
 extern crate rosrust_codegen;
 
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use std::sync::mpsc;
 use k::JointContainer;
 use glfw::{Action, Key, WindowEvent};
@@ -96,36 +96,20 @@ where
         let mut is_collide_show = false;
         self.update_robot();
         self.update_ik_target();
-        //let mut count = 0;
+
         rosrust::init("gear");
         let (tx, rx) = mpsc::channel();
-        let mut trajectory_pub = rosrust::publish("/arm_controller/command").unwrap();
-        let _joint_subscriber =
-            rosrust::subscribe("joint_states", move |s: msg::sensor_msgs::JointState| {
-                // Callback for handling received messages
-                tx.send(s).unwrap();
-                /*
-                println!("Received {:?}", s);
-                let mut angles = self.arm.get_joint_angles();
-                for (i, name) in self.arm.get_joint_names().into_iter().enumerate() {
-                    if let Some(pos) = s.name.iter().position(|&n| n == name) {
-                        angles[i] = s.position[pos];
-                    }
-                }
-                self.arm.set_joint_angles(&angles);
-                */
-                //planner.path_planner.collision_check_robot.get_joint_names();
-                //planner.path_planner.collision_check_robot.set_joint_angles();
-            }).unwrap();
+        let mut trajectory_pub = rosrust::publish("/arm_controller/follow_joint_trajectory/goal")
+            .unwrap();
+        //let mut trajectory_pub = rosrust::publish("/arm_controller/command").unwrap();
+        let _joint_subscriber = rosrust::subscribe(
+            "joint_states",
+            move |s: msg::sensor_msgs::JointState| { tx.send(s).unwrap(); },
+        ).unwrap();
         let mut plans: Vec<Vec<f64>> = Vec::new();
         while self.viewer.render() && rosrust::is_ok() {
-            if !plans.is_empty() {
-                self.arm.set_joint_angles(&plans.pop().unwrap()).unwrap();
-                self.update_robot();
-            }
-            //rate.sleep();
-            if let Ok(msg) = rx.recv_timeout(Duration::from_millis(10)) {
-                if plans.is_empty() {
+            if plans.is_empty() {
+                if let Ok(msg) = rx.recv_timeout(Duration::from_millis(10)) {
                     let mut angles = self.arm.get_joint_angles();
                     for (i, name) in self.arm.get_joint_names().into_iter().enumerate() {
                         let msg_names = msg.name.clone();
@@ -136,6 +120,9 @@ where
                     self.arm.set_joint_angles(&angles).unwrap();
                     self.update_robot();
                 }
+            } else {
+                self.arm.set_joint_angles(&plans.pop().unwrap()).unwrap();
+                self.update_robot();
             }
             for event in self.viewer.events().iter() {
                 match event.value {
@@ -222,64 +209,26 @@ where
                                             .into_iter()
                                             .map(|point| point.position)
                                             .collect();
-                                        //let mut msg = msg::control_msgs::FollowJointTrajectoryActionGoal::default();
-                                        let mut msg =
+                                        let mut msg = msg::control_msgs::FollowJointTrajectoryActionGoal::default();
+                                        msg.goal_id.id = format!("gear_ros{:?}", Instant::now());
+                                        let mut traj_msg =
                                             msg::trajectory_msgs::JointTrajectory::default();
-                                        //msg.goal_id.id = format!("gear_ros{:?}", Instant::now());
-                                        //count += 1;
-                                        //msg.goal.trajectory.joint_names = self.arm
-                                        //    .get_joint_names();
-                                        msg.joint_names = self.arm.get_joint_names();
+                                        traj_msg.joint_names = self.arm.get_joint_names();
                                         for (i, trajectory_point) in
                                             trajectory_points.into_iter().enumerate()
                                         {
                                             let mut tp = msg::trajectory_msgs::JointTrajectoryPoint::default();
-                                            /*
-                                            println!(
-                                                "{} {} {} {} {} {} {}",
-                                                i as f64 * 0.1,
-                                                trajectory_point.position[0],
-                                                trajectory_point.position[1],
-                                                trajectory_point.position[2],
-                                                trajectory_point.position[3],
-                                                trajectory_point.position[4],
-                                                trajectory_point.position[5]
-                                            );
-                                            */
-                                            println!(
-                                                "{} {} {} {} {} {} {}",
-                                                i as f64 * 0.1,
-                                                trajectory_point.velocity[0],
-                                                trajectory_point.velocity[1],
-                                                trajectory_point.velocity[2],
-                                                trajectory_point.velocity[3],
-                                                trajectory_point.velocity[4],
-                                                trajectory_point.velocity[5]
-                                            );
-
                                             tp.positions = trajectory_point.position;
                                             tp.velocities = trajectory_point.velocity;
                                             tp.accelerations = trajectory_point.acceleration;
-                                            //tp.effort = trajectory_point.acceleration;
 
                                             tp.time_from_start = rosrust::Duration::from_nanos(
-                                                (i * 100000000) as i64,
+                                                ((i + 1) * 100000000) as i64,
                                             );
-                                            //msg.goal.trajectory.points.push(tp);
-                                            msg.points.push(tp);
+                                            traj_msg.points.push(tp);
                                         }
-                                        /*
-                                        let j_tolerance =
-                                            msg::control_msgs::JointTolerance::default();
-                                        msg.goal.path_tolerance.push(j_tolerance);
-                                        let g_tolerance =
-                                            msg::control_msgs::JointTolerance::default();
-                                        msg.goal.goal_tolerance.push(g_tolerance);
-                                        */
-                                        // Log event
-                                        //println!("Publishing: {:?}", msg);
+                                        msg.goal.trajectory = traj_msg;
                                         trajectory_pub.send(msg).unwrap();
-                                        //println!("publish done!");
                                     }
                                     Err(error) => {
                                         println!("failed to reach!! {}", error);
