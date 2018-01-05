@@ -110,8 +110,8 @@ where
         while self.viewer.render() && rosrust::is_ok() {
             if plans.is_empty() {
                 if let Ok(msg) = rx.recv_timeout(Duration::from_millis(10)) {
-                    let mut angles = self.arm.get_joint_angles();
-                    for (i, name) in self.arm.get_joint_names().into_iter().enumerate() {
+                    let mut angles = self.arm.joint_angles();
+                    for (i, name) in self.arm.joint_names().into_iter().enumerate() {
                         let msg_names = msg.name.clone();
                         if let Some(pos) = msg_names.into_iter().position(|n| n == name) {
                             angles[i] = msg.position[pos];
@@ -213,7 +213,7 @@ where
                                         msg.goal_id.id = format!("gear_ros{:?}", Instant::now());
                                         let mut traj_msg =
                                             msg::trajectory_msgs::JointTrajectory::default();
-                                        traj_msg.joint_names = self.arm.get_joint_names();
+                                        traj_msg.joint_names = self.arm.joint_names();
                                         for (i, trajectory_point) in
                                             trajectory_points.into_iter().enumerate()
                                         {
@@ -225,6 +225,11 @@ where
                                             tp.time_from_start = rosrust::Duration::from_nanos(
                                                 ((i + 1) * 100000000) as i64,
                                             );
+                                            /* only new rosrust
+                                            tp.time_from_start = std::time::Duration::from_millis(
+                                                100 * i as u64,
+                                            ).into();
+                                            */
                                             traj_msg.points.push(tp);
                                         }
                                         msg.goal.trajectory = traj_msg;
@@ -243,7 +248,7 @@ where
                             Key::C => {
                                 self.reset_colliding_link_colors();
                                 self.colliding_link_names =
-                                    self.planner.get_colliding_link_names(&self.obstacles);
+                                    self.planner.colliding_link_names(&self.obstacles);
                                 for name in &self.colliding_link_names {
                                     println!("{}", name);
                                     self.viewer.set_temporal_color(name, 0.8, 0.8, 0.6);
