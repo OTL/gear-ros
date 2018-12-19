@@ -1,25 +1,8 @@
 <robot name="obstacles">
   <!-- links -->
-  <link name="ground">
-    <visual>
-      <origin xyz="0.0 0.0 -0.1" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <box size="1.5 1.5 0.1" />
-      </geometry>
-      <material name="Green">
-        <color rgba="0.3 0.3 0.8 1.0"/>
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 -0.1" rpy="0 0 0"/>
-      <geometry>
-        <box size="1.5 1.5 0.1" />
-      </geometry>
-    </collision>
-  </link>
   <link name="obj1">
     <visual>
-      <origin xyz="0.4 0.7 0.1" rpy="0.0 0.0 0.0" />
+      <origin xyz="0.7 0.0 0.1" rpy="0.0 0.0 0.0" />
       <geometry>
         <box size="0.4 0.8 0.2" />
       </geometry>
@@ -28,15 +11,15 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0.4 0.7 0.1" rpy="0 0 0"/>
+      <origin xyz="0.7 0.0 0.1" rpy="0 0 0"/>
       <geometry>
         <box size="0.4 0.8 0.2" />
       </geometry>
     </collision>
-  </link>  
+  </link>
   <link name="obj2">
     <visual>
-      <origin xyz="0.4 0.0 0.8" rpy="0.0 0.0 0.0" />
+      <origin xyz="0.7 0.0 0.6" rpy="0.0 0.0 0.0" />
       <geometry>
         <box size="0.4 0.6 0.2" />
       </geometry>
@@ -45,7 +28,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0.4 0.0 0.8" rpy="0 0 0"/>
+      <origin xyz="0.7 0.0 0.6" rpy="0 0 0"/>
       <geometry>
         <box size="0.4 0.6 0.2" />
       </geometry>
