@@ -21,10 +21,8 @@ extern crate nalgebra as na;
 extern crate ncollide3d;
 extern crate urdf_viz;
 extern crate urdf_rs;
-//#[macro_use]
-extern crate rosrust;
 #[macro_use]
-extern crate rosrust_codegen;
+extern crate rosrust;
 
 use std::time::{Duration, Instant};
 use std::sync::mpsc;
@@ -32,7 +30,12 @@ use gear::FromUrdf;
 use glfw::{Action, Key, WindowEvent};
 use ncollide3d::shape::Compound;
 
-rosmsg_include!();
+mod msg {
+rosmsg_include!(
+    sensor_msgs/JointState,
+    control_msgs/FollowJointTrajectoryActionGoal
+);
+}
 
 struct CollisionAvoidApp<I>
 where
