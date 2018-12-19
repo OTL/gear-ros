@@ -19,22 +19,22 @@ extern crate glfw;
 extern crate k;
 extern crate nalgebra as na;
 extern crate ncollide3d;
-extern crate urdf_viz;
 extern crate urdf_rs;
+extern crate urdf_viz;
 #[macro_use]
 extern crate rosrust;
 
-use std::time::{Duration, Instant};
-use std::sync::mpsc;
 use gear::FromUrdf;
 use glfw::{Action, Key, WindowEvent};
 use ncollide3d::shape::Compound;
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
 
 mod msg {
-rosmsg_include!(
-    sensor_msgs/JointState,
-    control_msgs/FollowJointTrajectoryActionGoal
-);
+    rosmsg_include!(
+        sensor_msgs / JointState,
+        control_msgs / FollowJointTrajectoryActionGoal
+    );
 }
 
 struct CollisionAvoidApp<I>
@@ -59,8 +59,8 @@ where
         viewer.add_robot(planner.urdf_robot().as_ref().unwrap());
         viewer.add_axis_cylinders("origin", 1.0);
 
-        let urdf_obstacles = urdf_rs::utils::read_urdf_or_xacro("obstacles.urdf")
-            .expect("obstacle file not found");
+        let urdf_obstacles =
+            urdf_rs::utils::read_urdf_or_xacro("obstacles.urdf").expect("obstacle file not found");
         let obstacles = Compound::from_urdf_robot(&urdf_obstacles);
         viewer.add_robot(&urdf_obstacles);
 
@@ -121,19 +121,25 @@ where
 
         rosrust::init("gear");
         let (tx, rx) = mpsc::channel();
-        let mut trajectory_pub = rosrust::publish("/arm_controller/follow_joint_trajectory/goal")
-            .unwrap();
+        let mut trajectory_pub =
+            rosrust::publish("/arm_controller/follow_joint_trajectory/goal").unwrap();
         //let mut trajectory_pub = rosrust::publish("/arm_controller/command").unwrap();
-        let _joint_subscriber = rosrust::subscribe(
-            "joint_states",
-            move |s: msg::sensor_msgs::JointState| { tx.send(s).unwrap(); },
-        ).unwrap();
+        let _joint_subscriber =
+            rosrust::subscribe("joint_states", move |s: msg::sensor_msgs::JointState| {
+                tx.send(s).unwrap();
+            })
+            .unwrap();
         let mut plans: Vec<Vec<f64>> = Vec::new();
         while self.viewer.render() && rosrust::is_ok() {
             if plans.is_empty() {
                 if let Ok(msg) = rx.recv_timeout(Duration::from_millis(10)) {
                     let mut angles = self.arm.joint_positions();
-                    for (i, name) in self.arm.iter_joints().map(|j| j.name.to_owned()).enumerate() {
+                    for (i, name) in self
+                        .arm
+                        .iter_joints()
+                        .map(|j| j.name.to_owned())
+                        .enumerate()
+                    {
                         let msg_names = msg.name.clone();
                         if let Some(pos) = msg_names.into_iter().position(|n| n == name) {
                             angles[i] = msg.position[pos];
@@ -222,8 +228,8 @@ where
                                     &self.obstacles,
                                 ) {
                                     Ok(plan) => {
-                                        let trajectory_points = gear::interpolate(&plan, 5.0, 0.1)
-                                            .unwrap();
+                                        let trajectory_points =
+                                            gear::interpolate(&plan, 5.0, 0.1).unwrap();
                                         let mut plan_for_viewer = plan.clone();
                                         plan_for_viewer.reverse();
                                         plans = gear::interpolate(&plan_for_viewer, 5.0, 0.1)
@@ -235,11 +241,17 @@ where
                                         msg.goal_id.id = format!("gear_ros{:?}", Instant::now());
                                         let mut traj_msg =
                                             msg::trajectory_msgs::JointTrajectory::default();
-                                        traj_msg.joint_names = self.arm.iter_joints().map(|j| j.name.to_owned()).collect();
+                                        traj_msg.joint_names = self
+                                            .arm
+                                            .iter_joints()
+                                            .map(|j| j.name.to_owned())
+                                            .collect();
                                         for (i, trajectory_point) in
                                             trajectory_points.into_iter().enumerate()
                                         {
-                                            let mut tp = msg::trajectory_msgs::JointTrajectoryPoint::default();
+                                            let mut tp =
+                                                msg::trajectory_msgs::JointTrajectoryPoint::default(
+                                                );
                                             tp.positions = trajectory_point.position;
                                             tp.velocities = trajectory_point.velocity;
                                             tp.accelerations = trajectory_point.acceleration;
@@ -287,7 +299,7 @@ where
                                     is_collide_show,
                                 );
                                 self.viewer
-                                .update(&self.planner.path_planner.collision_check_robot);
+                                    .update(&self.planner.path_planner.collision_check_robot);
                             }
                             _ => {}
                         }
