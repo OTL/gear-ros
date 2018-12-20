@@ -5,4 +5,5 @@ Motion planning and controller using Rust and ROS(rosrust)
 
 * Install ROS
 * Install sensor-msgs and control-msgs
-* cargo build
+* source /opt/ros/melodic/setup.bash
+* cargo build --release
