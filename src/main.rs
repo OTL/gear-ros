@@ -31,9 +31,10 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 mod msg {
+    #[rustfmt::skip]
     rosmsg_include!(
-        sensor_msgs / JointState,
-        control_msgs / FollowJointTrajectoryActionGoal
+        control_msgs/FollowJointTrajectoryActionGoal,
+        sensor_msgs/JointState,
     );
 }
 
@@ -320,8 +321,8 @@ fn main() {
         .unwrap()
         .collision_check_margin(0.01)
         .finalize();
-    let solver = gear::JacobianIKSolver::new(0.01, 0.05, 0.5, 100);
-    let solver = gear::RandomInitializeIKSolver::new(solver, 10);
+    let solver = gear::JacobianIKSolver::new(0.01, 0.05, 0.2, 100);
+    let solver = gear::RandomInitializeIKSolver::new(solver, 100);
     let planner = gear::JointPathPlannerWithIK::new(planner, solver);
     let mut app = CollisionAvoidApp::new(planner, &input_end_link);
     app.run();
